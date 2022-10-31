@@ -112,6 +112,7 @@ def create():
     _ACCOUNT_PRIVATE_KEY = config['candymachine']['cmPrivateKey']
     rest_client = RestClient(NODE_URL)
 
+
     #print("\n=== Verifying assets and metadata ===")
     #if not verifyMetadataFiles(_ASSET_FOLDER, _METADATA_FOLDER, _COLLECTION_SIZE): return
 
@@ -143,6 +144,7 @@ def prepareCandyMachineAccount(_ACCOUNT_ADDRESS, _ACCOUNT_PRIVATE_KEY, rest_clie
         alice = Account.generate()
         faucet_client = FaucetClient(FAUCET_URL, rest_client)
         faucet_client.fund_account(alice.address(), 200000000)
+
     else:
         accountAddress = AccountAddress.from_hex(_ACCOUNT_ADDRESS)
         privateKey = ed25519.PrivateKey.from_hex(_ACCOUNT_PRIVATE_KEY)
@@ -171,8 +173,11 @@ def prepareCandyMachineAccount(_ACCOUNT_ADDRESS, _ACCOUNT_PRIVATE_KEY, rest_clie
 
 def createCandyMachine(rest_client, alice, _ASSET_FOLDER):
     print("\n=== Creating Candy Machine ===")
-    txn_hash = rest_client.create_candy_machine(alice)
-    rest_client.wait_for_transaction(txn_hash)
+    try:
+        txn_hash = rest_client.create_candy_machine(alice)
+        rest_client.wait_for_transaction(txn_hash)
+    except Exception as e:
+        raise Exception(e)
     print("\n Success, txn hash: " + txn_hash)
     resetChainInfoFromUriInfo(_ASSET_FOLDER)
 

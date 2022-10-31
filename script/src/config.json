@@ -11,22 +11,22 @@
         }
     },
     "candymachine": {
-        "cmPublicKey": "0x3b3a0901cfc91b289cd16b62b28fd850e52a2921d463945a3722c33a81bad453",
-        "cmPrivateKey": "0x80fd0f609fe180f44db7c3dde7704daf53a621e602a86bf461ac2cfe0b28370a"
+        "cmPublicKey": "",
+        "cmPrivateKey": ""
     },
     "collection": {
-        "assetDir": "/Users/Shared/assets/images",
-        "metadataDir": "/Users/Shared/assets/metadata",
-        "collectionName": "TestCollection101",
-        "collectionDescription": "placeholder",
-        "collectionCover": "",
+        "assetDir": "/home/pulsz/Documents/dev/Aptos-NFT-Mint/script/src/assets/images",
+        "metadataDir": "/home/pulsz/Documents/dev/Aptos-NFT-Mint/script/src/assets/metadatas",
+        "collectionName": "Plzzzz",
+        "collectionDescription": "I am a description",
+        "collectionCover": "ipfs://bafybeibs3c5hnddvcolmarndybtesc4xbxl4bopu7xu4olwgosqm2hqjnu",
         "collectionSize": 10,
         "maxMintPerWallet": 3,
         "mintFee": 10,
         "royalty_points_denominator": 1000,
         "royalty_points_numerator": 100,
-        "presaleMintTime": 100000000,
-        "publicMintTime": 100000000,
-        "whitelistDir": "/Users/Shared/assets"
+        "presaleMintTime": 1667220087,
+        "publicMintTime": 1667220087,
+        "whitelistDir": "/home/pulsz/Documents/dev/Aptos-NFT-Mint/script/src/assets"
     }
 }

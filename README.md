@@ -1,3 +1,9 @@
+# Notes on this mint
+
+- Add images and metadatas to right folder (under script/src/assets/) + upload images and metadatas to these folders
+- Setup the config.json file with all secret keys and right path to images + metadatas
+
+
 # Disclaimer 
 
 We are not affiliated with Aptos or any NFT project. We develop tools for everyone to use, at their own risk.
