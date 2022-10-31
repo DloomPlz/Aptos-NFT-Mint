@@ -11,6 +11,8 @@ import {candyMachineAddress, collectionName, collectionCoverUrl, NODE_URL, CONTR
 import Spinner from "react-bootstrap/Spinner"
 import Modal from "react-bootstrap/Modal"
 
+import axios from 'axios';
+
 import { toast } from 'react-toastify';
 
 const aptosClient = new AptosClient(NODE_URL);
@@ -22,7 +24,7 @@ export default function Home() {
   const [candyMachineData, setCandyMachineData] = useState({data: {}, fetch: fetchCandyMachineData})
   const [timeLeftToMint, setTimeLeftToMint] = useState({presale: "", public: "", timeout: null})
 
-  const [mintInfo, setMintInfo] = useState({numToMint: 1, minting: false, success: false, mintedNfts: []})
+  const [mintInfo, setMintInfo] = useState({numToMint: 1, minting: false, success: false, mintedNfts: [], mintedNftsData: []})
 
   const [canMint, setCanMint] = useState(false)
 
@@ -70,6 +72,7 @@ export default function Home() {
     console.log(mintSuccess ? "Mint success!" : `Mint failure, an error occured.`)
 
     let mintedNfts = []
+    let mintedNftsData = []
     if (!mintSuccess) {
         /// Handled error messages
         const handledErrorMessages = new Map([
@@ -86,10 +89,16 @@ export default function Home() {
     } else {
         mintedNfts = await cmHelper.getMintedNfts(aptosClient, candyMachineData.data.tokenDataHandle, candyMachineData.data.cmResourceAccount, collectionName, txInfo)
         toast.success("Minting success!")
+        await mintedNfts.forEach(async(element, index, array) => { 
+          const response = await axios.get(element.imageUri);
+          console.log({response})
+          console.log(response.data)
+          mintedNftsData.push(response.data)
+        })
     }
 
     
-    setMintInfo({...mintInfo, minting: false, success: mintSuccess, mintedNfts})
+    setMintInfo({...mintInfo, minting: false, success: mintSuccess, mintedNfts, mintedNftsData})
 }
 
 
@@ -177,9 +186,10 @@ export default function Home() {
           <Modal id="mint-results-modal" show={mintInfo.success} onHide={() => setMintInfo({...mintInfo, success: false, mintedNfts: []})} centered size="lg">
             <Modal.Body className="d-flex flex-column align-items-center pt-5 pb-3">
                 <div className="d-flex justify-content-center w-100 my-5" style={{flexWrap: "wrap"}}>
-                    {mintInfo.mintedNfts.map(mintedNft => <div key={mintedNft.name} className={`${styles.mintedNftCard} d-flex flex-column mx-3`}>
-                        <img src={mintedNft.imageUri === null ? "" : mintedNft.imageUri} />
+                    {mintInfo.mintedNfts.map((mintedNft, index) => <div key={mintedNft.name} className={`${styles.mintedNftCard} d-flex flex-column mx-3`}>
+                        <img src={mintInfo.mintedNftsData[index].image === null ? "" : mintInfo.mintedNftsData[index].image} />
                         <h5 className="text-white text-center mt-2">{mintedNft.name}</h5>
+                        
                     </div>)}
                 </div>
             </Modal.Body>
