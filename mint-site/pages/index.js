@@ -1,60 +1,77 @@
 import Head from 'next/head'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import styles from '../styles/Home.module.css'
 
-import { AptosClient } from "aptos";
-import { useWallet } from '@manahippo/aptos-wallet-adapter';
-import cmHelper from "../helpers/candyMachineHelper"
-import ConnectWalletButton from '../helpers/Aptos/ConnectWalletButton';
-import {candyMachineAddress, collectionName, collectionCoverUrl, NODE_URL, CONTRACT_ADDRESS, COLLECTION_SIZE} from "../helpers/candyMachineInfo"
+import { AptosClient } from 'aptos'
+import { useWallet } from '@manahippo/aptos-wallet-adapter'
+import cmHelper from '../helpers/candyMachineHelper'
+import ConnectWalletButton from '../helpers/Aptos/ConnectWalletButton'
+import {
+  candyMachineAddress,
+  collectionName,
+  collectionCoverUrl,
+  NODE_URL,
+  CONTRACT_ADDRESS,
+  COLLECTION_SIZE,
+} from '../helpers/candyMachineInfo'
 
-import Spinner from "react-bootstrap/Spinner"
-import Modal from "react-bootstrap/Modal"
+import Spinner from 'react-bootstrap/Spinner'
+import Modal from 'react-bootstrap/Modal'
 
-import axios from 'axios';
+import axios from 'axios'
 
-import { toast } from 'react-toastify';
+import { toast } from 'react-toastify'
 
-const aptosClient = new AptosClient(NODE_URL);
-const autoCmRefresh = 10000;
+const aptosClient = new AptosClient(NODE_URL)
+const autoCmRefresh = 10000
 
 export default function Home() {
-  const wallet = useWallet();
+  const wallet = useWallet()
   const [isFetchignCmData, setIsFetchignCmData] = useState(false)
-  const [candyMachineData, setCandyMachineData] = useState({data: {}, fetch: fetchCandyMachineData})
-  const [timeLeftToMint, setTimeLeftToMint] = useState({presale: "", public: "", timeout: null})
+  const [candyMachineData, setCandyMachineData] = useState({
+    data: {},
+    fetch: fetchCandyMachineData,
+  })
+  const [timeLeftToMint, setTimeLeftToMint] = useState({
+    presale: '',
+    public: '',
+    timeout: null,
+  })
 
-  const [mintInfo, setMintInfo] = useState({numToMint: 1, minting: false, success: false, mintedNfts: [], mintedNftsData: []})
+  const [mintInfo, setMintInfo] = useState({
+    numToMint: 1,
+    minting: false,
+    success: false,
+    mintedNfts: [],
+    mintedNftsData: [],
+  })
 
   const [canMint, setCanMint] = useState(false)
 
   useEffect(() => {
     if (!wallet.autoConnect && wallet.wallet?.adapter) {
-        wallet.connect();
+      wallet.connect()
     }
-  }, [wallet.autoConnect, wallet.wallet, wallet.connect]);
+  }, [wallet.autoConnect, wallet.wallet, wallet.connect])
 
   const mint = async () => {
-    if (wallet.account?.address?.toString() === undefined || mintInfo.minting) return;
+    if (wallet.account?.address?.toString() === undefined || mintInfo.minting)
+      return
 
-    console.log(wallet.account?.address?.toString());
-    setMintInfo({...mintInfo, minting: true})
+    console.log(wallet.account?.address?.toString())
+    setMintInfo({ ...mintInfo, minting: true })
     // Generate a transaction
     const payload = {
-      type: "entry_function_payload",
+      type: 'entry_function_payload',
       function: `${CONTRACT_ADDRESS}::candy_machine_v2::mint_tokens`,
       type_arguments: [],
-      arguments: [
-      	candyMachineAddress,
-	      collectionName,
-	      mintInfo.numToMint,
-      ]
-    };
+      arguments: [candyMachineAddress, collectionName, mintInfo.numToMint],
+    }
 
-    let txInfo;
+    let txInfo
     try {
-      const txHash = await wallet.signAndSubmitTransaction(payload);
-      console.log(txHash);
+      const txHash = await wallet.signAndSubmitTransaction(payload)
+      console.log(txHash)
       txInfo = await aptosClient.waitForTransactionWithResult(txHash.hash)
     } catch (err) {
       txInfo = {
@@ -63,68 +80,120 @@ export default function Home() {
       }
     }
     handleMintTxResult(txInfo)
-    if (txInfo.success) setCandyMachineData({...candyMachineData, data: {...candyMachineData.data, numMintedTokens: (parseInt(candyMachineData.data.numMintedTokens) + parseInt(mintInfo.numToMint)).toString()}})
+    if (txInfo.success)
+      setCandyMachineData({
+        ...candyMachineData,
+        data: {
+          ...candyMachineData.data,
+          numMintedTokens: (
+            parseInt(candyMachineData.data.numMintedTokens) +
+            parseInt(mintInfo.numToMint)
+          ).toString(),
+        },
+      })
   }
 
   async function handleMintTxResult(txInfo) {
-    console.log(txInfo);
-    const mintSuccess = txInfo.success;
-    console.log(mintSuccess ? "Mint success!" : `Mint failure, an error occured.`)
+    console.log(txInfo)
+    const mintSuccess = txInfo.success
+    console.log(
+      mintSuccess ? 'Mint success!' : `Mint failure, an error occured.`
+    )
 
     let mintedNfts = []
     let mintedNftsData = []
     if (!mintSuccess) {
-        /// Handled error messages
-        const handledErrorMessages = new Map([
-            ["Failed to sign transaction", "An error occured while signing."],
-            ["Move abort in 0x1::coin: EINSUFFICIENT_BALANCE(0x10006): Not enough coins to complete transaction", "Insufficient funds to mint."],
-        ]);
+      /// Handled error messages
+      const handledErrorMessages = new Map([
+        ['Failed to sign transaction', 'An error occured while signing.'],
+        [
+          'Move abort in 0x1::coin: EINSUFFICIENT_BALANCE(0x10006): Not enough coins to complete transaction',
+          'Insufficient funds to mint.',
+        ],
+      ])
 
-        const txStatusError = txInfo.vm_status;
-        console.error(`Mint not successful: ${txStatusError}`);
-        let errorMessage = handledErrorMessages.get(txStatusError);
-        errorMessage = errorMessage === undefined ? "Unkown error occured. Try again." : errorMessage;
+      const txStatusError = txInfo.vm_status
+      console.error(`Mint not successful: ${txStatusError}`)
+      let errorMessage = handledErrorMessages.get(txStatusError)
+      errorMessage =
+        errorMessage === undefined
+          ? 'Unkown error occured. Try again.'
+          : errorMessage
 
-        toast.error(errorMessage);
+      toast.error(errorMessage)
     } else {
-        mintedNfts = await cmHelper.getMintedNfts(aptosClient, candyMachineData.data.tokenDataHandle, candyMachineData.data.cmResourceAccount, collectionName, txInfo)
-        toast.success("Minting success!")
-        await mintedNfts.forEach(async(element, index, array) => { 
-          const response = await axios.get(element.imageUri);
-          console.log({response})
-          console.log(response.data)
-          mintedNftsData.push(response.data)
+      mintedNfts = await cmHelper.getMintedNfts(
+        aptosClient,
+        candyMachineData.data.tokenDataHandle,
+        candyMachineData.data.cmResourceAccount,
+        collectionName,
+        txInfo
+      )
+      toast.success('Minting success!')
+      /*mintedNfts.forEach(async (element, index, array) => {
+        const response = await axios.get(element.imageUri, {
+          headers: {
+            'Access-Control-Allow-Credentials': true,
+          },
         })
+        console.log({ response })
+        console.log(response.data)
+        mintedNftsData.push(response.data)
+      })*/
     }
 
-    
-    setMintInfo({...mintInfo, minting: false, success: mintSuccess, mintedNfts, mintedNftsData})
-}
-
-
+    setMintInfo({
+      ...mintInfo,
+      minting: false,
+      success: mintSuccess,
+      mintedNfts,
+      mintedNftsData,
+    })
+  }
 
   async function fetchCandyMachineData(indicateIsFetching = false) {
-    console.log("Fetching candy machine data...")
+    console.log('Fetching candy machine data...')
     if (indicateIsFetching) setIsFetchignCmData(true)
-    const cmResourceAccount = await cmHelper.getCandyMachineResourceAccount();
+    const cmResourceAccount = await cmHelper.getCandyMachineResourceAccount()
     if (cmResourceAccount === null) {
-      setCandyMachineData({...candyMachineData, data: {}})
+      setCandyMachineData({ ...candyMachineData, data: {} })
       setIsFetchignCmData(false)
       return
     }
 
-    const collectionInfo = await cmHelper.getCandyMachineCollectionInfo(cmResourceAccount);
-    const configData = await cmHelper.getCandyMachineConfigData(collectionInfo.candyMachineConfigHandle);
-    setCandyMachineData({...candyMachineData, data: {cmResourceAccount, ...collectionInfo, ...configData}})
+    const collectionInfo = await cmHelper.getCandyMachineCollectionInfo(
+      cmResourceAccount
+    )
+    const configData = await cmHelper.getCandyMachineConfigData(
+      collectionInfo.candyMachineConfigHandle
+    )
+    setCandyMachineData({
+      ...candyMachineData,
+      data: { cmResourceAccount, ...collectionInfo, ...configData },
+    })
     setIsFetchignCmData(false)
   }
 
   function verifyTimeLeftToMint() {
     const mintTimersTimeout = setTimeout(verifyTimeLeftToMint, 1000)
-    if (candyMachineData.data.presaleMintTime === undefined || candyMachineData.data.publicMintTime === undefined) return
+    if (
+      candyMachineData.data.presaleMintTime === undefined ||
+      candyMachineData.data.publicMintTime === undefined
+    )
+      return
 
-    const currentTime = Math.round(new Date().getTime() / 1000);
-    setTimeLeftToMint({timeout : mintTimersTimeout, presale: cmHelper.getTimeDifference(currentTime, candyMachineData.data.presaleMintTime), public: cmHelper.getTimeDifference(currentTime, candyMachineData.data.publicMintTime)})
+    const currentTime = Math.round(new Date().getTime() / 1000)
+    setTimeLeftToMint({
+      timeout: mintTimersTimeout,
+      presale: cmHelper.getTimeDifference(
+        currentTime,
+        candyMachineData.data.presaleMintTime
+      ),
+      public: cmHelper.getTimeDifference(
+        currentTime,
+        candyMachineData.data.publicMintTime
+      ),
+    })
   }
 
   useEffect(() => {
@@ -146,7 +215,7 @@ export default function Home() {
   }, [wallet, candyMachineData, timeLeftToMint])
 
   return (
-    <div className="bg-gray-500">
+    <div className="bg-black">
       <div className={styles.container}>
         <Head>
           <title>Aptos NFT Mint</title>
@@ -155,47 +224,152 @@ export default function Home() {
         </Head>
 
         <main className={styles.main}>
-          <h1 className={styles.title}>
-            {collectionName} Mint
-          </h1>
+          <h1 className={styles.title}>{collectionName} Mint</h1>
           <div className={styles.topcorner}>
-            <ConnectWalletButton connectButton={!wallet.connected} className="d-flex" />
+            <ConnectWalletButton
+              connectButton={!wallet.connected}
+              className="d-flex"
+            />
           </div>
-          <img src={collectionCoverUrl} style={{ width: "480px", height:"480px" }} />
-          <div id="collection-info" className="d-flex flex-column align-items-center text-white" style={{width: "80%"}}>
-            {isFetchignCmData ? <Spinner animation="border" role="status" className="mt-5"><span className="visually-hidden">Loading...</span></Spinner> : 
-            <>
-              <div className="d-flex align-items-center my-3">
-                <input className={`${styles.defaultInput} me-3`} type="number" min="1" max={candyMachineData.data.maxMintsPerWallet === undefined ? 10 : Math.min(candyMachineData.data.maxMintsPerWallet, candyMachineData.data.numUploadedTokens - candyMachineData.data.numMintedTokens)} value={mintInfo.numToMint} onChange={(e) => setMintInfo({...mintInfo, numToMint: e.target.value})} />
-                <button className={styles.button} onClick={mint} disabled={!canMint}>{mintInfo.minting ? <Spinner animation="border" role="status"><span className="visually-hidden">Loading...</span></Spinner> : "Mint"}</button>
-                <h4 className="mx-3 mb-0">{candyMachineData.data.mintFee * mintInfo.numToMint} $APT</h4>
-                <span style={{width: "15px", height: "15px", borderRadius: "50%", background: candyMachineData.data.isPublic ? "green" : "red"}}></span>
-              </div>
-              <h5>{candyMachineData.data.numMintedTokens}/ {COLLECTION_SIZE} minted</h5>
-              <div className="d-flex flex-column align-items-center my-3">
-                <h3 style={{textDecoration: "underline"}}>Presale In:</h3>
-                <h6>{timeLeftToMint.presale === "LIVE" ? "LIVE" : timeLeftToMint.presale.days + " days : " + timeLeftToMint.presale.hours + " hours : " + timeLeftToMint.presale.minutes + " minutes : " + timeLeftToMint.presale.seconds + " seconds"}</h6>
-              </div>
-              <div className="d-flex flex-column align-items-center my-3">
-                <h3 style={{textDecoration: "underline"}}>Public In:</h3>
-                <h6>{timeLeftToMint.public === "LIVE" ? "LIVE" : timeLeftToMint.public.days + " days : " + timeLeftToMint.public.hours + " hours : " + timeLeftToMint.public.minutes + " minutes : " + timeLeftToMint.public.seconds + " seconds"}</h6>
-              </div>
-            </>}
-          </div>
-
-          <Modal id="mint-results-modal" show={mintInfo.success} onHide={() => setMintInfo({...mintInfo, success: false, mintedNfts: []})} centered size="lg">
-            <Modal.Body className="d-flex flex-column align-items-center pt-5 pb-3">
-                <div className="d-flex justify-content-center w-100 my-5" style={{flexWrap: "wrap"}}>
-                    {mintInfo.mintedNfts.map((mintedNft, index) => <div key={mintedNft.name} className={`${styles.mintedNftCard} d-flex flex-column mx-3`}>
-                        <img src={mintInfo.mintedNftsData[index].image === null ? "" : mintInfo.mintedNftsData[index].image} />
-                        <h5 className="text-white text-center mt-2">{mintedNft.name}</h5>
-                        
-                    </div>)}
+          <img
+            src={collectionCoverUrl}
+            style={{ width: '480px', height: '480px' }}
+            className="rounded-full"
+          />
+          <div
+            id="collection-info"
+            className="d-flex flex-column align-items-center text-white"
+            style={{ width: '80%' }}
+          >
+            {isFetchignCmData ? (
+              <Spinner animation="border" role="status" className="mt-5">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+            ) : (
+              <>
+                <div className="d-flex align-items-center my-3">
+                  <input
+                    className={`${styles.defaultInput} me-3`}
+                    type="number"
+                    min="1"
+                    max={
+                      candyMachineData.data.maxMintsPerWallet === undefined
+                        ? 10
+                        : Math.min(
+                            candyMachineData.data.maxMintsPerWallet,
+                            candyMachineData.data.numUploadedTokens -
+                              candyMachineData.data.numMintedTokens
+                          )
+                    }
+                    value={mintInfo.numToMint}
+                    onChange={(e) =>
+                      setMintInfo({ ...mintInfo, numToMint: e.target.value })
+                    }
+                  />
+                  <button
+                    className={styles.button}
+                    onClick={mint}
+                    disabled={!canMint}
+                  >
+                    {mintInfo.minting ? (
+                      <Spinner animation="border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </Spinner>
+                    ) : (
+                      'Mint'
+                    )}
+                  </button>
+                  <h4 className="mx-3 mb-0">
+                    {candyMachineData.data.mintFee * mintInfo.numToMint} $APT
+                  </h4>
+                  <span
+                    style={{
+                      width: '15px',
+                      height: '15px',
+                      borderRadius: '50%',
+                      background: candyMachineData.data.isPublic
+                        ? 'green'
+                        : 'red',
+                    }}
+                  ></span>
                 </div>
-            </Modal.Body>
-        </Modal>
-        </main>
+                <h5>
+                  {candyMachineData.data.numMintedTokens}/ {COLLECTION_SIZE}{' '}
+                  minted
+                </h5>
+                <div className="d-flex flex-column align-items-center my-3">
+                  <h3 style={{ textDecoration: 'underline' }}>Presale In:</h3>
+                  <h6>
+                    {timeLeftToMint.presale === 'LIVE'
+                      ? 'LIVE'
+                      : timeLeftToMint.presale.days +
+                        ' days : ' +
+                        timeLeftToMint.presale.hours +
+                        ' hours : ' +
+                        timeLeftToMint.presale.minutes +
+                        ' minutes : ' +
+                        timeLeftToMint.presale.seconds +
+                        ' seconds'}
+                  </h6>
+                </div>
+                <div className="d-flex flex-column align-items-center my-3">
+                  <h3 style={{ textDecoration: 'underline' }}>Public In:</h3>
+                  <h6>
+                    {timeLeftToMint.public === 'LIVE'
+                      ? 'LIVE'
+                      : timeLeftToMint.public.days +
+                        ' days : ' +
+                        timeLeftToMint.public.hours +
+                        ' hours : ' +
+                        timeLeftToMint.public.minutes +
+                        ' minutes : ' +
+                        timeLeftToMint.public.seconds +
+                        ' seconds'}
+                  </h6>
+                </div>
+              </>
+            )}
+          </div>
 
+          <Modal
+            id="mint-results-modal"
+            show={mintInfo.success}
+            onHide={() =>
+              setMintInfo({ ...mintInfo, success: false, mintedNfts: [] })
+            }
+            centered
+            size="lg"
+          >
+            <Modal.Body className="d-flex flex-column align-items-center pt-5 pb-3">
+              <div
+                className="d-flex justify-content-center w-100 my-5"
+                style={{ flexWrap: 'wrap' }}
+              >
+                {mintInfo.mintedNfts.map((mintedNft, index) => (
+                  <div
+                    key={mintedNft.name}
+                    className={`${styles.mintedNftCard} d-flex flex-column mx-3`}
+                  >
+                    {/*<img
+                      className=""
+                      src={
+                        mintInfo.mintedNftsData[index] === undefined
+                          ? ''
+                          : mintInfo.mintedNftsData[index].image
+                      }
+                    />*/}
+                    <h3 className="text-white text-center m-2 text-9xl">
+                      Minted{' '}
+                    </h3>
+                    <h5 className="text-white text-center mt-2">
+                      {mintedNft.name}
+                    </h5>
+                  </div>
+                ))}
+              </div>
+            </Modal.Body>
+          </Modal>
+        </main>
       </div>
     </div>
   )
